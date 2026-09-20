@@ -215,6 +215,11 @@ public static class EmbedFactory
                         "`/color preview color [user]` — Generates a visual preview of a username using the selected color. You can also preview another server member to see the color with their name and avatar.")
                     .WithInline(false),
                 new EmbedFieldProperties()
+                    .WithName("Random Color")
+                    .WithValue(
+                        "`/color random` — Display a random named color with it's name and code!")
+                    .WithInline(false),
+                new EmbedFieldProperties()
                     .WithName("Color List")
                     .WithValue(
                         "`/color list` — Provides a link to Enanan's complete named color palette.")
