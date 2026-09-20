@@ -1,4 +1,10 @@
-﻿# Enanan Bot
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
+![NetCord](https://img.shields.io/badge/Discord-NetCord-5865F2?logo=discord)
+![C#](https://img.shields.io/badge/C%23-13.0-239120?logo=csharp)
+![License](https://img.shields.io/github/license/soaringpromise/enanan-v2)
+![Release](https://img.shields.io/github/v/release/soaringpromise/enanan-v2)
+ 
+ # Enanan Bot
 
 **Enanan** is a Discord bot mainly designed for Project SEKAI tiering communities, with a focus on custom role
 management, member customization, global information profiles, and miscellaneous server utilities.
