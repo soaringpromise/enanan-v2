@@ -8,56 +8,58 @@ namespace EnananV2.Tools.Factories;
 public static class RoleMenuFactory
 {
     public static async Task<RestMessage> SendCharacterRolePanelAsync(
-        TextGuildChannel channel,
-        UnitDefinition unit,
-        IReadOnlyDictionary<string, ulong> characterRoleIds)
+        TextGuildChannel channel, UnitDefinition unit, IReadOnlyDictionary<string, ulong> characterRoleIds)
     {
         var options = unit.Characters.Select(character =>
             new StringMenuSelectOptionProperties(character.RoleName, characterRoleIds[character.Name].ToString()));
         
-        var menu = new StringMenuProperties($"characterRoleSelect:{StringTools.StringToIdentifier(unit.Name)}")
-            .WithPlaceholder($"Select a {unit.Name} character...")
+        var menu = new StringMenuProperties("characterRoleSelect")
+            .WithPlaceholder($"Choose a {unit.Name} character...")
             .WithOptions(options);
 
-        var embed = EmbedFactory.CreateSimpleColorEmbed(
-            $"Select a {unit.Name} role below. Selecting it again removes it.", unit.Color);
+        var embed = EmbedFactory.CreateRolePanelEmbed(
+            $"{unit.Name} Character",
+            $"Choose a **{unit.Name}** character and use their signature color.",
+            unit.IconUrl,
+            unit.Color);
         
         var message = new MessageProperties().WithComponents([menu]).WithEmbeds([embed]);
         return await channel.SendMessageAsync(message);
     }
 
     public static async Task<RestMessage> SendUnitRolePanelAsync(
-        TextGuildChannel channel,
-        IReadOnlyDictionary<string, ulong> unitRoleIds)
+        TextGuildChannel channel, IReadOnlyDictionary<string, ulong> unitRoleIds)
     {
-        var options = CharacterCatalog.Units.Values.Select(unitOption =>
-            new StringMenuSelectOptionProperties(unitOption.RoleName, unitRoleIds[unitOption.Name].ToString()));
+        var options = CharacterCatalog.Units.Values
+            .OrderBy(unit => unit.Id)
+            .Select(unit => new StringMenuSelectOptionProperties(unit.RoleName, unitRoleIds[unit.Name].ToString()));
 
         var menu = new StringMenuProperties("unitRoleSelect")
-            .WithPlaceholder("Select a unit...")
+            .WithPlaceholder("Choose a unit...")
             .WithOptions(options);
 
-        var embed = EmbedFactory.CreateSimpleColorEmbed(
-            "Select a unit role below. Selecting it again removes it.");
+        var embed = EmbedFactory.CreateRolePanelEmbed(
+            "Unit",
+            "Choose your favorite Project SEKAI unit and wear its signature color.",
+            Cdn.Ena("units"),
+            0x00CCBB);
         
         var message = new MessageProperties().WithComponents([menu]).WithEmbeds([embed]);
         return await channel.SendMessageAsync(message);
     }
 
     public static async Task<RestMessage> SendGenericRolePanelAsync(
-        TextGuildChannel channel, IReadOnlyDictionary<string, ulong> roleIds, string componentId)
+        TextGuildChannel channel, IReadOnlyDictionary<string, ulong> roleIds, string componentId,
+        string property, string description, string placeholder, string iconUrl, int color = 0xCCAA88)
     {
-        var options = roleIds.Keys.Select(roleName =>
-            new StringMenuSelectOptionProperties(roleName, roleIds[roleName].ToString()));
+        var options = roleIds.Select(role =>
+            new StringMenuSelectOptionProperties(role.Key, role.Value.ToString()));
         
         var menu = new StringMenuProperties(componentId)
-            .WithPlaceholder("Select a role...")
+            .WithPlaceholder(placeholder)
             .WithOptions(options);
 
-        var embed = EmbedFactory.CreateSimpleColorEmbed(
-            "Select a role below to add it, select it again to remove it. " +
-            "Use the menu again to add or remove another.");
-        
+        var embed = EmbedFactory.CreateRolePanelEmbed(property, description, iconUrl, color);
         var message = new MessageProperties().WithComponents([menu]).WithEmbeds([embed]);
         return await channel.SendMessageAsync(message);
     }

@@ -4,7 +4,7 @@ namespace EnananV2.Database.Configuration;
 
 public sealed class DatabaseMigrator(SqliteConnector connector)
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public void Migrate()
     {
@@ -16,11 +16,9 @@ public sealed class DatabaseMigrator(SqliteConnector connector)
         while (version < CurrentVersion)
         {
             version++;
-
             ApplyMigration(connection, transaction, version);
             SetVersion(connection, transaction, version);
         }
-
         transaction.Commit();
     }
 
@@ -29,12 +27,11 @@ public sealed class DatabaseMigrator(SqliteConnector connector)
         using var command = connection.CreateCommand();
 
         command.Transaction = transaction;
-        command.CommandText =
-            """
-            SELECT version
-            FROM schema_version
-            WHERE id = 1
-            """;
+        command.CommandText = """
+                              SELECT version
+                              FROM schema_version
+                              WHERE id = 1
+                              """;
 
         var result = command.ExecuteScalar();
 
@@ -43,20 +40,16 @@ public sealed class DatabaseMigrator(SqliteConnector connector)
             : Convert.ToInt32(result);
     }
 
-    private static void SetVersion(
-        SqliteConnection connection,
-        SqliteTransaction transaction,
-        int version)
+    private static void SetVersion(SqliteConnection connection, SqliteTransaction transaction, int version)
     {
         using var command = connection.CreateCommand();
 
         command.Transaction = transaction;
-        command.CommandText =
-            """
-            UPDATE schema_version
-            SET version = @version
-            WHERE id = 1
-            """;
+        command.CommandText = """
+                              UPDATE schema_version
+                              SET version = @version
+                              WHERE id = 1
+                              """;
 
         command.Parameters.AddWithValue("@version", version);
         command.ExecuteNonQuery();
@@ -64,9 +57,27 @@ public sealed class DatabaseMigrator(SqliteConnector connector)
 
     private static void ApplyMigration(SqliteConnection connection, SqliteTransaction transaction, int version)
     {
-        throw version switch
+        switch (version)
         {
-            _ => new InvalidOperationException($"No migration exists for database version {version}.")
-        };
+            case 2: 
+                MigrateToVersion2(connection, transaction);
+                break;
+
+            default: 
+                throw new InvalidOperationException($"No migration exists for database version {version}.");
+        }
+    }
+
+    private static void MigrateToVersion2(SqliteConnection connection, SqliteTransaction transaction)
+    {
+        using var command = connection.CreateCommand();
+
+        command.Transaction = transaction;
+        command.CommandText = """
+                              ALTER TABLE guild_settings
+                              ADD COLUMN static_role_anchor_id TEXT DEFAULT NULL;
+                              """;
+
+        command.ExecuteNonQuery();
     }
 }

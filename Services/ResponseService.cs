@@ -108,9 +108,9 @@ public sealed class ResponseService(RestClient client)
     }
     
     public async Task SendFieldResponse(
-        IInteractionContext ctx, IEnumerable<(string Name, string Value, bool Inline)> fields)
+        IInteractionContext ctx, string title, IEnumerable<(string Name, string Value, bool Inline)> fields)
     {
-        var embed = EmbedFactory.FieldEmbed(fields);
+        var embed = EmbedFactory.FieldEmbed(title, fields);
         var properties = new InteractionMessageProperties().AddEmbeds(embed);
         await ctx.Interaction.SendResponseAsync(InteractionCallback.Message(properties));
     }

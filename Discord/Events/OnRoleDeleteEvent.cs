@@ -15,6 +15,7 @@ public sealed class OnRoleDeleteEvent(
         try
         {
             await database.GuildMember.ClearCustomRoleById(arg.GuildId, arg.RoleId);
+            await database.Guild.ClearStaticRoleAnchor(arg.GuildId, arg.RoleId);
         }
         catch (Exception e)
         {

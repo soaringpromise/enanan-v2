@@ -68,7 +68,7 @@ public sealed class TierProfileCommands(
         try
         {
             var profile = await validator.ValidateTierProfileExists(targetUser.Id);
-            var username = targetUser.Nickname ?? targetUser.GlobalName ?? targetUser.Username;
+            var username = targetUser.GlobalName ?? targetUser.Username;
 
             var avatarUrl =
                 (targetUser.GetGuildAvatarUrl(ImageFormat.WebP)

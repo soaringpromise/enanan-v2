@@ -88,20 +88,28 @@ public sealed class CustomRoleService(DatabaseService database, ILogger<CustomRo
         }
     }
 
-    private static async Task TryMoveRoleAsync(Guild guild, Role role, ulong botUserId)
+    private async Task TryMoveRoleAsync(Guild guild, Role role, ulong botUserId)
     {
         try
         {
             var bot = await guild.GetUserAsync(botUserId);
             var botTopRole = bot.GetRoles(guild).MaxBy(r => r.Position);
             if (botTopRole is null) return;
-            var targetPosition = Math.Max(botTopRole.RawPosition - 1, 1);
 
-            await guild.ModifyRolePositionsAsync([
-                new RolePositionProperties(role.Id).WithPosition(targetPosition)
-            ]);
+            var fallbackPosition = Math.Max(botTopRole.RawPosition - 1, 1);
+            var targetPosition = fallbackPosition;
+
+            var anchorRoleId = await database.Guild.GetStaticRoleAnchorId(guild.Id);
+
+            if (anchorRoleId is not null && guild.Roles.TryGetValue(anchorRoleId.Value, out var anchorRole)) 
+                targetPosition = Math.Min(anchorRole.RawPosition + 1, fallbackPosition);
+            
+            await guild.ModifyRolePositionsAsync([new RolePositionProperties(role.Id).WithPosition(targetPosition)]);
         }
-        catch (RestException) { /* Ignore failure to move. */ }
+        catch (RestException)
+        {
+            // Ignore failure to move.
+        }
     }
 
     private async Task RollbackRoleAsync(Role role, ulong guildId)
@@ -109,8 +117,7 @@ public sealed class CustomRoleService(DatabaseService database, ILogger<CustomRo
         try { await role.DeleteAsync(); }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to roll back role {RoleId} in guild {GuildId}.",
-                role.Id, guildId);
+            logger.LogError(e, "Failed to roll back role {RoleId} in guild {GuildId}.", role.Id, guildId);
         }
     }
 }

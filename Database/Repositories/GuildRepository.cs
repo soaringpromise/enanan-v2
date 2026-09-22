@@ -198,6 +198,65 @@ public sealed class GuildRepository(SqliteConnector database) : BaseRepository(d
         return await cmd.ExecuteNonQueryAsync() == 1;
     }
     
+    public async Task<bool> SetStaticRoleAnchorIfUnset(ulong guildId, ulong roleId)
+    {
+        const string sql = """
+                           UPDATE guild_settings
+                           SET static_role_anchor_id = @roleId
+                           WHERE guild_id = @guildId
+                             AND static_role_anchor_id IS NULL;
+                           """;
+
+        await using var connection = OpenConnection();
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("@guildId", guildId.ToString());
+        command.Parameters.AddWithValue("@roleId", roleId.ToString());
+
+        return await command.ExecuteNonQueryAsync() == 1;
+    }
+    
+    public async Task<ulong?> GetStaticRoleAnchorId(ulong guildId)
+    {
+        const string sql = """
+                           SELECT static_role_anchor_id
+                           FROM guild_settings
+                           WHERE guild_id = @guildId;
+                           """;
+
+        await using var connection = OpenConnection();
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("@guildId", guildId.ToString());
+
+        var result = await command.ExecuteScalarAsync();
+
+        return result is string value
+            ? ulong.Parse(value)
+            : null;
+    }
+    
+    public async Task<bool> ClearStaticRoleAnchor(ulong guildId, ulong roleId)
+    {
+        const string sql = """
+                           UPDATE guild_settings
+                           SET static_role_anchor_id = NULL
+                           WHERE guild_id = @guildId
+                             AND static_role_anchor_id = @roleId;
+                           """;
+
+        await using var connection = OpenConnection();
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("@guildId", guildId.ToString());
+        command.Parameters.AddWithValue("@roleId", roleId.ToString());
+
+        return await command.ExecuteNonQueryAsync() == 1;
+    }
+    
     public async Task<bool> GetRoleLimitWarned(ulong guildId)
     {
         const string sql = """

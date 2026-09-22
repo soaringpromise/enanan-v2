@@ -75,14 +75,14 @@ public class ImageFactoryService
                 var textStyle = TextStyle.Default.FontFamily(
                     "gg sans",
                     "Segoe UI",
-                    "Segoe UI Variable Small Light",
-                    "Segoe UI Light",
-                    "Segoe UI Semibold",
-                    "Segoe UI Semilight",
-                    "Segoe UI Historic",
-                    "Segoe UI Symbol",
-                    "Segoe UI Fluent Icons",
-                    "Segoe UI Emoji"
+                    "Noto Sans",
+                    "Noto Sans JP",
+                    "Noto Sans Math",
+                    "Noto Sans Symbols",
+                    "Noto Sans Symbols 2",
+                    "Noto Sans Runic",
+                    "Noto Sans Egyptian Hieroglyphs",
+                    "Noto Color Emoji"
                 );
                 page.DefaultTextStyle(textStyle);
                 page.ContinuousSize(600);
@@ -173,8 +173,7 @@ public class ImageFactoryService
                                 .LineHeight(1.2f)
                                 .FontColor(roleColor)
                                 .FontSize(17.5f)
-                                .SemiBold()
-                                .FontFamily("gg sans");
+                                .FontFamily("gg sans").SemiBold();
 
                             if (!string.IsNullOrWhiteSpace(guildTag) &&
                                 guildBadge is not null)
@@ -195,7 +194,7 @@ public class ImageFactoryService
                                 .Text("1:00 AM")
                                 .FontColor(TextTimestamp)
                                 .FontSize(14)
-                                .FontFamily("gg sans");
+                                .FontFamily("gg sans").Medium();
                         });
 
                     col.Item()
@@ -203,8 +202,7 @@ public class ImageFactoryService
                         .Text(Lines[index])
                         .FontColor(textHex)
                         .FontSize(17.5f)
-                        .FontFamily("gg sans")
-                        .NormalWeight();
+                        .FontFamily("gg sans").Medium();
                 });
             });
     }
@@ -266,8 +264,7 @@ public class ImageFactoryService
                     TextStyle.Default.FontFamily(
                         "gg sans",
                         "Segoe UI",
-                        "Segoe UI Variable",
-                        "Segoe UI Emoji"
+                        "Noto Color Emoji"
                     )
                 );
 

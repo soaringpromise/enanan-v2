@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using EnananV2.Definitions.Data;
 using EnananV2.Definitions.Models;
 using NetCord;
 using NetCord.Rest;
@@ -7,61 +8,40 @@ namespace EnananV2.Tools.Factories;
 
 public static class EmbedFactory
 {
-    private const string IconUrl = "https://cdn.soaringpromise.moe/enanan/bot/ena_icon.png";
+    private static readonly string EnaPfpUrl = Cdn.Ena("pfp");
+    private static readonly string ArtFooterIconUrl = Cdn.Ena("ena_art");
+    private static readonly string HappyFooterIconUrl = Cdn.Ena("ena_happy");
+    private static readonly string MessageFooterIconUrl = Cdn.Ena("ena_message");
+    private static readonly Color EnaColor = new(0xCCAA88);
+    
     private const string AuthorName = "えななん (@enanan_bot)";
-    private const string FooterIconUrl = "https://cdn.soaringpromise.moe/enanan/bot/nightcord.png";
     private const string FooterText = "Enanan Bot";
     private const string BotUrl = "https://enanan.soaringpromise.moe";
-    private static readonly Color EnaColor = new(0xCCAA88);
-
-
-    private static EmbedAuthorProperties CreateDefaultAuthor()
-    {
-        return new EmbedAuthorProperties()
-            .WithIconUrl(IconUrl)
-            .WithName(AuthorName)
-            .WithUrl(BotUrl);
-    }
-
-    private static EmbedFooterProperties CreateDefaultFooter()
-    {
-        return new EmbedFooterProperties()
-            .WithText(FooterText)
-            .WithIconUrl(FooterIconUrl);
-    }
-
-    private static EmbedProperties CreateDefaultEmbed()
-    {
-        return new EmbedProperties()
-            .WithAuthor(CreateDefaultAuthor())
-            .WithFooter(CreateDefaultFooter())
-            .WithTimestamp(DateTime.UtcNow)
-            .WithColor(EnaColor);
-    }
-
+    
+    
     public static EmbedProperties CreatePlainEmbed(string message, bool stats = true)
     {
         return CreateDefaultEmbed().WithDescription(stats ? StringTools.AddFakeStats(message) : message);
     }
 
-    public static EmbedProperties CreateSimpleColorEmbed(string? description, int color = 0xCCAA88)
-    {
-        return new EmbedProperties()
-            .WithAuthor(CreateDefaultAuthor())
-            .WithColor(new Color(color))
-            .WithDescription(description);
-    }
-
     public static EmbedProperties CreateResponseEmbed(string message, ResponseType type)
     {
-        var color = type switch
+        var (color, status, icon) = type switch
         {
-            ResponseType.Success => new Color(0x99FF33),
-            ResponseType.Warning => new Color(0xFEE75C),
-            ResponseType.Error => new Color(0xED4245),
+            ResponseType.Success => (new Color(0x48B02C), "Success", Cdn.Status("success")),
+            ResponseType.Warning => (new Color(0xFFBB33), "Warning", Cdn.Status("warning")),
+            ResponseType.Error => (new Color(0xFF4141), "Error", Cdn.Status("error")),
             _ => throw new ArgumentOutOfRangeException(nameof(type))
         };
-        return new EmbedProperties().WithDescription(message).WithColor(color).WithAuthor(CreateDefaultAuthor());
+
+        return new EmbedProperties()
+            .WithColor(color)
+            .WithAuthor(new EmbedAuthorProperties()
+                .WithName($"Enanan ・ {status}")
+                .WithIconUrl(icon))
+            .WithDescription(message)
+            .WithFooter(new EmbedFooterProperties()
+                .WithText("Enanan Bot ・ Automated response").WithIconUrl(MessageFooterIconUrl));
     }
 
     public static EmbedProperties CreateImageEmbed(string imageUrl, string? message = null)
@@ -100,10 +80,38 @@ public static class EmbedFactory
         return new EmbedProperties()
             .WithColor(characterColor)
             .WithAuthor(new EmbedAuthorProperties()
-                .WithName(username)
+                .WithName($"{username}'s Tier Profile")
                 .WithIconUrl(avatarUrl))
             .WithDescription(description.ToString())
-            .WithThumbnail(new EmbedThumbnailProperties(cardUrl));
+            .WithThumbnail(new EmbedThumbnailProperties(cardUrl))
+            .WithFooter(new EmbedFooterProperties()
+                .WithText("Enanan Bot ・ Forward this profile to share it anywhere on Discord!")
+                .WithIconUrl(HappyFooterIconUrl));
+    }
+    
+    public static EmbedProperties CreateRolePanelEmbed(string property, string description, string iconUrl, int color = 0xCCAA88)
+    {
+        return new EmbedProperties()
+            .WithColor(new Color(color))
+            .WithAuthor(new EmbedAuthorProperties()
+                .WithName($"Enanan ・ {property} Role Selection")
+                .WithIconUrl(iconUrl))
+            .WithDescription(description)
+            .WithFooter(new EmbedFooterProperties()
+                .WithIconUrl(ArtFooterIconUrl)
+                .WithText("Enanan Bot ・ Roles can be changed at any time!"));
+    }
+    
+    public static EmbedProperties FieldEmbed(
+        string title, IEnumerable<(string Name, string Value, bool Inline)> fieldData)
+    {
+        var fields = fieldData.Select(field =>
+            new EmbedFieldProperties()
+                .WithName(field.Name)
+                .WithValue(field.Value)
+                .WithInline(field.Inline));
+
+        return CreateDefaultEmbed().WithTitle(title).WithFields(fields);
     }
 
     public static EmbedProperties CreateGeneralHelpEmbed()
@@ -217,7 +225,7 @@ public static class EmbedFactory
                 new EmbedFieldProperties()
                     .WithName("Random Color")
                     .WithValue(
-                        "`/color random` — Display a random named color with it's name and code!")
+                        "`/color random` — Display a random named color with its name and code!")
                     .WithInline(false),
                 new EmbedFieldProperties()
                     .WithName("Color List")
@@ -275,15 +283,27 @@ public static class EmbedFactory
                     .WithInline(false));
     }
     
-    public static EmbedProperties FieldEmbed(IEnumerable<(string Name, string Value, bool Inline)> fieldData)
+    private static EmbedAuthorProperties CreateDefaultAuthor()
     {
+        return new EmbedAuthorProperties()
+            .WithIconUrl(EnaPfpUrl)
+            .WithName(AuthorName)
+            .WithUrl(BotUrl);
+    }
 
-        var fields = fieldData.Select(field =>
-            new EmbedFieldProperties()
-                .WithName(field.Name)
-                .WithValue(field.Value)
-                .WithInline(field.Inline));
+    private static EmbedFooterProperties CreateDefaultFooter()
+    {
+        return new EmbedFooterProperties()
+            .WithText(FooterText)
+            .WithIconUrl(ArtFooterIconUrl);
+    }
 
-        return CreateDefaultEmbed().WithTitle("Credits & Contributors").WithFields(fields);
+    private static EmbedProperties CreateDefaultEmbed()
+    {
+        return new EmbedProperties()
+            .WithAuthor(CreateDefaultAuthor())
+            .WithFooter(CreateDefaultFooter())
+            .WithTimestamp(DateTime.UtcNow)
+            .WithColor(EnaColor);
     }
 }

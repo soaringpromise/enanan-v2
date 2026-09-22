@@ -40,12 +40,11 @@ public sealed class DatabaseInitializer(SqliteConnector connector)
         using var command = connection.CreateCommand();
 
         command.Transaction = transaction;
-        command.CommandText =
-            """
-            INSERT INTO schema_version (id, version)
-            VALUES (1, @version)
-            ON CONFLICT(id) DO NOTHING;
-            """;
+        command.CommandText = """
+                              INSERT INTO schema_version (id, version)
+                              VALUES (1, @version)
+                              ON CONFLICT(id) DO NOTHING;
+                              """;
 
         command.Parameters.AddWithValue("@version", InitialSchemaVersion);
 

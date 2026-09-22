@@ -71,6 +71,15 @@ public sealed class DatabaseService(
         public Task<bool> RemoveWelcomeChannel(ulong guildId)
             => repository.UpdateWelcomeChannel(guildId, null);
         
+        public Task<bool> SetStaticRoleAnchorIfUnset(ulong guildId, ulong roleId)
+            => repository.SetStaticRoleAnchorIfUnset(guildId, roleId);
+        
+        public Task<ulong?> GetStaticRoleAnchorId(ulong guildId)
+            => repository.GetStaticRoleAnchorId(guildId);
+
+        public Task<bool> ClearStaticRoleAnchor(ulong guildId, ulong roleId)
+            => repository.ClearStaticRoleAnchor(guildId, roleId);
+        
         public Task<bool> WasRoleLimitWarned(ulong guildId)
             => repository.GetRoleLimitWarned(guildId);
 

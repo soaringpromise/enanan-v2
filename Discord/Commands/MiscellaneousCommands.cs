@@ -37,7 +37,7 @@ public sealed class MiscellaneousCommands(ResponseService responses) : Applicati
                 false
             )
         };
-        await responses.SendFieldResponse(Context, contributors);
+        await responses.SendFieldResponse(Context, "Credits & Contributors", contributors);
     }
     
     [SlashCommand("donate", "Support the bot's development.")]

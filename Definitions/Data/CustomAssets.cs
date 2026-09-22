@@ -28,7 +28,5 @@ public static class CustomAssets
     }
     
     public static string GetRandomWelcomeBanner()
-        => $"https://cdn.soaringpromise.moe/enanan/bot/banners/enawelcome{Random.Shared.Next(1, TotalWelcomeBanners + 1)}.webp";
-    
-    
+        => Cdn.Banner($"enawelcome{Random.Shared.Next(1, TotalWelcomeBanners + 1)}");
 }

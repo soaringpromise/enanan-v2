@@ -1,3 +1,5 @@
+*.ps1
+
 appsettings.json
 appsettings.*.json
 !appsettings.example.json

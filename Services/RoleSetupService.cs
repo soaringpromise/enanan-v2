@@ -30,6 +30,10 @@ public sealed class RoleSetupService(ILogger<RoleSetupService> logger, DatabaseS
                     roleChannel,
                     PredefinedRoles.Tiering.All,
                     "tieringRoleSelect",
+                    "Tiering",
+                    "Choose how you usually participate in tiering, co-op, and event runs.",
+                    "Choose a tiering role...",
+                    Cdn.Ena("tiering"),
                     createdRoleIds,
                     createdMessages);
             }
@@ -41,6 +45,10 @@ public sealed class RoleSetupService(ILogger<RoleSetupService> logger, DatabaseS
                     roleChannel,
                     PredefinedRoles.Identity.All,
                     "identityRoleSelect",
+                    "Identity",
+                    "Choose the roles that best describe how you'd like others to refer to you.",
+                    "Choose an identity role...",
+                    Cdn.Ena("identity"),
                     createdRoleIds,
                     createdMessages);
             }
@@ -52,18 +60,17 @@ public sealed class RoleSetupService(ILogger<RoleSetupService> logger, DatabaseS
                     roleChannel,
                     PredefinedRoles.Utility.All,
                     "utilityRoleSelect",
+                    "Utility",
+                    "Opt in to the server activities and notifications you're interested in.",
+                    "Choose a utility role...",
+                    Cdn.Ena("utility"),
                     createdRoleIds,
                     createdMessages);
             }
         }
         catch (Exception e)
         {
-            await RollbackSetupAsync(
-                guild,
-                createdRoleIds,
-                createdMessages,
-                e);
-
+            await RollbackSetupAsync(guild, createdRoleIds, createdMessages, e);
             throw;
         }
     }
@@ -113,7 +120,8 @@ public sealed class RoleSetupService(ILogger<RoleSetupService> logger, DatabaseS
 
     private async Task CreateGenericRolesAsync(
         Guild guild, TextGuildChannel roleChannel, IEnumerable<RoleProperties> roles,
-        string componentId, List<ulong> createdRoleIds, List<RestMessage> createdMessages)
+        string componentId, string property, string description, string placeholder, string iconUrl,
+        List<ulong> createdRoleIds, List<RestMessage> createdMessages)
     {
         var roleIds = new Dictionary<string, ulong>(StringComparer.OrdinalIgnoreCase);
         foreach (var properties in roles)
@@ -122,7 +130,9 @@ public sealed class RoleSetupService(ILogger<RoleSetupService> logger, DatabaseS
             roleIds[role.Name] = role.Id;
         }
 
-        var message = await RoleMenuFactory.SendGenericRolePanelAsync(roleChannel, roleIds, componentId);
+        var message = await RoleMenuFactory.SendGenericRolePanelAsync(
+            roleChannel, roleIds, componentId, property, description, placeholder, iconUrl);
+        
         createdMessages.Add(message);
         await database.GuildSetup.AddMessage(guild.Id, roleChannel.Id, message.Id);
     }
@@ -137,6 +147,7 @@ public sealed class RoleSetupService(ILogger<RoleSetupService> logger, DatabaseS
 
             createdRoleIds.Add(role.Id);
             await database.GuildSetup.AddRole(guild.Id, role.Id);
+            await database.Guild.SetStaticRoleAnchorIfUnset(guild.Id, role.Id);
         }
         catch (RestException e)
         {
@@ -237,78 +248,78 @@ public sealed class RoleSetupService(ILogger<RoleSetupService> logger, DatabaseS
     }
 
     public async Task RecoverInterruptedSetupAsync(Guild guild)
-{
-    if (!await database.Guild.Exists(guild.Id)) return;
-    if (await database.Guild.IsSetupComplete(guild.Id)) return;
-
-    var failed = false;
-
-    var messages = await database.GuildSetup.GetMessages(guild.Id);
-
-    foreach (var message in messages)
     {
-        try
+        if (!await database.Guild.Exists(guild.Id)) return;
+        if (await database.Guild.IsSetupComplete(guild.Id)) return;
+
+        var failed = false;
+
+        var messages = await database.GuildSetup.GetMessages(guild.Id);
+
+        foreach (var message in messages)
         {
             try
             {
-                if (guild.Channels.TryGetValue(message.ChannelId, out var channel) && channel is TextChannel textChannel)
+                try
                 {
-                    await textChannel.DeleteMessageAsync(message.MessageId);
+                    if (guild.Channels.TryGetValue(message.ChannelId, out var channel) && channel is TextChannel textChannel)
+                    {
+                        await textChannel.DeleteMessageAsync(message.MessageId);
+                    }
                 }
+                catch (RestException e) when (e.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // The message or channel is already gone.
+                }
+
+                await database.GuildSetup.RemoveMessage(guild.Id, message.MessageId);
             }
-            catch (RestException e) when (e.StatusCode == HttpStatusCode.NotFound)
+            catch (Exception e)
             {
-                // The message or channel is already gone.
+                failed = true;
+
+                logger.LogError(
+                    e,
+                    "Failed to recover setup message {MessageId} in guild {GuildId}.",
+                    message.MessageId,
+                    guild.Id);
             }
-
-            await database.GuildSetup.RemoveMessage(guild.Id, message.MessageId);
         }
-        catch (Exception e)
-        {
-            failed = true;
 
-            logger.LogError(
-                e,
-                "Failed to recover setup message {MessageId} in guild {GuildId}.",
-                message.MessageId,
-                guild.Id);
-        }
-    }
+        var roles = await database.GuildSetup.GetRoles(guild.Id);
 
-    var roles = await database.GuildSetup.GetRoles(guild.Id);
-
-    foreach (var roleId in roles)
-    {
-        try
+        foreach (var roleId in roles)
         {
             try
             {
-                await guild.DeleteRoleAsync(roleId);
+                try
+                {
+                    await guild.DeleteRoleAsync(roleId);
+                }
+                catch (RestException e) when (e.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // The role is already gone.
+                }
+
+                await database.GuildSetup.RemoveRole(guild.Id, roleId);
             }
-            catch (RestException e) when (e.StatusCode == HttpStatusCode.NotFound)
+            catch (Exception e)
             {
-                // The role is already gone.
+                failed = true;
+
+                logger.LogError(
+                    e,
+                    "Failed to recover setup role {RoleId} in guild {GuildId}.",
+                    roleId,
+                    guild.Id);
             }
-
-            await database.GuildSetup.RemoveRole(guild.Id, roleId);
         }
-        catch (Exception e)
-        {
-            failed = true;
 
-            logger.LogError(
-                e,
-                "Failed to recover setup role {RoleId} in guild {GuildId}.",
-                roleId,
-                guild.Id);
-        }
+        if (failed)
+            throw new InvalidRequestException("A previous setup could not be fully cleaned up. Try again later.");
+
+        if (!await database.Guild.DeleteGuild(guild.Id))
+            throw new InvalidRequestException(
+                "The interrupted setup was cleaned up, but the guild registration could not be removed.");
     }
-
-    if (failed)
-        throw new InvalidRequestException("A previous setup could not be fully cleaned up. Try again later.");
-
-    if (!await database.Guild.DeleteGuild(guild.Id))
-        throw new InvalidRequestException(
-            "The interrupted setup was cleaned up, but the guild registration could not be removed.");
-}
 }
